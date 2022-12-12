@@ -2,6 +2,8 @@ import os
 import json
 import pypandoc
 import requests
+import openpyxl
+from openpyxl import Workbook
 import pandas as pd 
 import numpy as np
 from bs4 import BeautifulSoup
@@ -11,6 +13,11 @@ import arxiv
 import sklearn
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer,CountVectorizer
+import nltk
+from nltk.stem.porter import PorterStemmer
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.stem import PorterStemmer
+import webbrowser
 # os.system("somef describe -r https://github.com/dgarijo/Widoco/ -o test.json -t 0.8")
 
 #DEFINITIVO:
@@ -24,7 +31,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer,CountVectorizer
 # https://github.com/shi-labs/versatile-diffusion sip 
 # https://github.com/shoufachen/diffusiondet ?
 
-sentences = ["I ate dinner", "I love pasta"]
 
 def cosine(u,v):
     return np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
@@ -132,7 +138,19 @@ def obtainArxiv(archivo):
   res = data["arxivLinks"]["excerpt"][0]
   f.close()
   text=obtainAbstractArxiv(res)
-  return text
+  textstemmed = raices(text)
+  return textstemmed
+
+
+def raices (text):
+  #print (text)
+  fin=""
+  porter_stemmer  = PorterStemmer()
+  raiz = nltk.word_tokenize(text)
+  for palabra in raiz:
+    w = porter_stemmer.stem(palabra)
+    fin=fin+w+" "
+  return fin
 
 def obtainAbstractArxiv(res):
   print("viejo "+res)
@@ -144,16 +162,39 @@ def obtainAbstractArxiv(res):
   search = arxiv.Search(id_list=[new4])
   paper = next(search.results())
   text = paper.summary
-  return text
+  
+  textstemmed=raices(text)
+  return textstemmed
 
-urls = ["https://github.com/facebookresearch/encodec",
-"https://github.com/huggingface/transformers",
-"https://github.com/WongKinYiu/yolov7",
-"https://github.com/openai/sparse_attention",
-"https://github.com/jadore801120/attention-is-all-you-need-pytorch",
-"https://github.com/extreme-bert/extreme-bert",
-"https://github.com/fengres/mixvoxels",
-"https://github.com/shi-labs/versatile-diffusion"]
+def obtainTopic(archivo):
+  f = open(archivo)
+  data = (json.loads(f.read()))
+  #url = json_load["citation"]["doi"]
+  res = data["topics"]["excerpt"]
+  junto = ""
+  for palabra in res:
+    junto = junto + " " + palabra
+  #print(junto)
+  f.close()
+  #text=obtainAbstractArxiv(res)
+  return junto
+
+def obtainDescription(archivo):
+  f = open(archivo)
+  data = (json.loads(f.read()))
+  #url = json_load["citation"]["doi"]
+  res = data["description"][0]["excerpt"]
+  #print(res)
+  f.close()
+  #text=obtainAbstractArxiv(res)
+  textstemmed = raices(res)
+  return textstemmed
+
+
+with open("data.json") as f:
+    urls = json.load(f)
+# Imprime [True, False, None, 'Hola, mundo!'].
+print(urls)
 
 print("-----PRUEBA COMPARACION REPOSITORIOS GITHUB-----")
 print("lista de repositorios")
@@ -173,6 +214,15 @@ for url in urls:
   #obtenerJason(url,nombrecompleto)
   i+=1
 
+nombres = []
+contador = 0
+for w in urls:
+  if contador != num:
+    nuevo = w.replace("https://github.com/",'')
+    nombres.append(nuevo)
+    contador +=1
+  else:
+    contador +=1
 
 urlreadme = []
 for a in range (i):
@@ -198,7 +248,6 @@ for read in urlreadme:
     readmes.append(response.text)
     cont +=1
 
-print("origen es "+ origen)
 valoresReadme = transformarSentenceembeding(readmes,origen)
 valoresReadmeTfidf = transformarTfidf(readmestotal,origen)
 print("valores Readme son ")
@@ -242,16 +291,91 @@ print(valoresAbstracts)
 print("valores Abstract tfidf son ")
 print(valoresAbstractsTfidf)
 
+topics = []
+for a in range (i):
+  nombre = 'test'
+  nombre2 = '.json'
+  nombrecompleto=nombre+str(a)+nombre2
+  print("ANALISIS DEL REPOSITORIO "+nombrecompleto)
+  try:
+    topics.append(obtainTopic(nombrecompleto))
+  except:
+    print("no hay topic")
+    topics.append("no hay")
 
+topiclista = []
+topiclistatotal = []
+cont = 0
+for topic in topics:
+  topiclistatotal.append(topic)
+  if cont==num:
+    origen=topic
+    cont+=1
+  else:
+    topiclista.append(topic)
+    cont+=1
 
+valoresTopic = transformarSentenceembeding(topiclista,origen)
+valoresTopicTfidf = transformarTfidf(topiclistatotal,origen)
+print("valores Topic son ")
+print(valoresTopic)
+print("valores Topic tfidf son ")
+print(valoresTopicTfidf)
 
+description = []
+for a in range (i):
+  nombre = 'test'
+  nombre2 = '.json'
+  nombrecompleto=nombre+str(a)+nombre2
+  print("ANALISIS DEL REPOSITORIO "+nombrecompleto)
+  try:
+    description.append(obtainDescription(nombrecompleto))
+  except:
+    print("no hay description")
+    topics.append("no hay")
+
+descriptions = []
+descriptionsTotal = []
+cont = 0
+for des in abstracts:
+  descriptionsTotal.append(des)
+  if cont==num:
+    origen=des
+    cont+=1
+  else:
+    descriptions.append(des)
+    cont+=1
+
+valoresDescriptions = transformarSentenceembeding(descriptions,origen)
+valoresDescriptionsTfidf = transformarTfidf(descriptionsTotal,origen)
+print("valores Description son ")
+print(valoresDescriptions)
+print("valores Description tfidf son ")
+print(valoresDescriptionsTfidf)
+# index=dates
 #columnas df[nombre]
 #filas df.iloc(indice)
 
-df = pd.DataFrame(columns = ['Readme(sentence-embedings)','Readme(tf-idf)','Abstract(sentence-embedings)','Abstract(tf-idf)'])
+df = pd.DataFrame(index=nombres,columns = ['Readme(sentence-embedings)','Readme(tf-idf)','Abstract(sentence-embedings)','Abstract(tf-idf)','Keywords(sentence-embedings)','Keywords(tf-idf)','Description(sentence-embedings)','Description(tf-idf)'])
 df["Readme(sentence-embedings)"]=valoresReadme
-df["Abstract(sentence-embedings)"]=valoresAbstracts
 df["Readme(tf-idf)"]=valoresReadmeTfidf
+df["Abstract(sentence-embedings)"]=valoresAbstracts
 df["Abstract(tf-idf)"]=valoresAbstractsTfidf
+df["Keywords(sentence-embedings)"]=valoresTopic
+df["Keywords(tf-idf)"]=valoresTopicTfidf
+df["Description(sentence-embedings)"]=valoresDescriptions
+df["Description(tf-idf)"]=valoresDescriptionsTfidf
+print("\n ------------- comparacion de ------------------ \n")
 print(urls[num])
+print("\n ------------------------------- \n")
 print(df)
+1
+#df.to_excel('out.xlsx') 
+
+html = df.to_html()
+
+#write html to file
+text_file = open("index.html", "w")
+text_file.write(html)
+text_file.close()
+webbrowser.open_new_tab("index.html")
