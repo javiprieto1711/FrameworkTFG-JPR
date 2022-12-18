@@ -1,39 +1,34 @@
 import os
 import json
-import pypandoc
 import requests
-import openpyxl
-from openpyxl import Workbook
 import pandas as pd 
 import numpy as np
-from bs4 import BeautifulSoup
 from markdown import markdown
 from sentence_transformers import SentenceTransformer
 import arxiv
-import sklearn
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer,CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import nltk
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import PorterStemmer
 import webbrowser
-# os.system("somef describe -r https://github.com/dgarijo/Widoco/ -o test.json -t 0.8")
 
-#DEFINITIVO:
-# https://github.com/facebookresearch/encodec sip 
-# https://github.com/huggingface/transformers sip 
-# https://github.com/WongKinYiu/yolov7 sip
-# https://github.com/openai/sparse_attention sip 
-# https://github.com/jadore801120/attention-is-all-you-need-pytorch sip
-# https://github.com/extreme-bert/extreme-bert sip
-# https://github.com/fengres/mixvoxels sip
-# https://github.com/shi-labs/versatile-diffusion sip 
-# https://github.com/shoufachen/diffusiondet ?
+#["https://github.com/facebookresearch/encodec",
+#  "https://github.com/huggingface/transformers",
+#  "https://github.com/WongKinYiu/yolov7",
+#  "https://github.com/openai/sparse_attention",
+#  "https://github.com/jadore801120/attention-is-all-you-need-pytorch",
+#  "https://github.com/extreme-bert/extreme-bert",
+#  "https://github.com/fengres/mixvoxels",
+#  "https://github.com/shi-labs/versatile-diffusion",
+# "https://github.com/facebookresearch/ParlAI",
+# "https://github.com/CR-Gjx/LeakGAN",
+# "https://github.com/liangke23/awesome-knowledge-graph-reasoning",
+# "https://github.com/deepmind/code_contests",
+# "https://github.com/YuliangXiu/ECON"]
 
-
-def cosine(u,v):
-    return np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
+["https://github.com/huggingface/transformers","https://github.com/WongKinYiu/yolov7","https://github.com/jadore801120/attention-is-all-you-need-pytorch","https://github.com/extreme-bert/extreme-bert","https://github.com/CR-Gjx/LeakGAN"]
 
 def obtenerJason (url,nombre):
   orden1="somef describe -r "
@@ -49,22 +44,25 @@ def obtenerinfo (archivo):
   json_load = (json.loads(f.read()))
   print(json_load["name"]["excerpt"])
 
+
+#------- Algoritmo Sentences Embedings------------
 def transformarSentenceembeding(sentences,original):
   valores= []
-  model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-  embeddings = model.encode(sentences)
-
-  query = original
-  query_vec = model.encode([query])[0]
+  model = SentenceTransformer('all-MiniLM-L6-v2')
   i=0
   for sent in sentences:
-    sim = cosine(query_vec, model.encode([sent])[0])
+    sim = cosine(model.encode(original), model.encode(sent))
+    #print("original "+original)
+    #print("toca: "+sent)
     print("Sentence = repositorio",i, " ,similarity = ", sim)
     i+=1
     valores.append(sim)
   return valores
 
+def cosine(u,v):
+    return np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
 
+#------- Algoritmo Tfidf------------
 def transformarTfidf(sentences,original):
   valores=[]
   con = 0
@@ -74,22 +72,33 @@ def transformarTfidf(sentences,original):
   cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
   print(cosine_sim)
   for i in sentences:
-    #print (i)
-    #print (original)
     print (i == original)
     if i == original:
       for j in cosine_sim[con]:
-        #print("j es "+j)
         if con2 != con:
           valores.append(j)
           con2 += 1
         else:
           con2 +=1
-
     else:
       con +=1
-
   return valores
+
+#------Algoritmo de Stemming-----------
+def raices (text):
+  fin=""
+  porter_stemmer  = PorterStemmer()
+  raiz = nltk.word_tokenize(text)
+  for palabra in raiz:
+    w = porter_stemmer.stem(palabra)
+    fin=fin+w+" "
+  return fin
+
+def obtainTittle(archivo):
+  f = open(archivo)
+  json_load = (json.loads(f.read()))
+  url = json_load["name"]["excerpt"]
+  return url
 
 def obtainReadme(archivo):
   f = open(archivo)
@@ -98,6 +107,7 @@ def obtainReadme(archivo):
   print(url)
   return url
 
+#--------ObtainDoi (no consistente)----------
 def obtainDoi(archivo):
   f = open(archivo)
   data = (json.loads(f.read()))
@@ -112,7 +122,6 @@ def obtainDoi(archivo):
     con+=1
   f.close()
   abstract=obtainAbastract(res)
-
   return abstract
 
 def obtainAbastract(url):
@@ -131,6 +140,7 @@ def obtainAbastract(url):
     print('')
   return ("nothing")
 
+
 def obtainArxiv(archivo):
   f = open(archivo)
   data = (json.loads(f.read()))
@@ -140,17 +150,6 @@ def obtainArxiv(archivo):
   text=obtainAbstractArxiv(res)
   textstemmed = raices(text)
   return textstemmed
-
-
-def raices (text):
-  #print (text)
-  fin=""
-  porter_stemmer  = PorterStemmer()
-  raiz = nltk.word_tokenize(text)
-  for palabra in raiz:
-    w = porter_stemmer.stem(palabra)
-    fin=fin+w+" "
-  return fin
 
 def obtainAbstractArxiv(res):
   print("viejo "+res)
@@ -162,39 +161,31 @@ def obtainAbstractArxiv(res):
   search = arxiv.Search(id_list=[new4])
   paper = next(search.results())
   text = paper.summary
-  
   textstemmed=raices(text)
   return textstemmed
 
 def obtainTopic(archivo):
   f = open(archivo)
   data = (json.loads(f.read()))
-  #url = json_load["citation"]["doi"]
   res = data["topics"]["excerpt"]
   junto = ""
   for palabra in res:
     junto = junto + " " + palabra
-  #print(junto)
   f.close()
-  #text=obtainAbstractArxiv(res)
+  print(junto)
   return junto
 
 def obtainDescription(archivo):
   f = open(archivo)
   data = (json.loads(f.read()))
-  #url = json_load["citation"]["doi"]
   res = data["description"][0]["excerpt"]
-  #print(res)
   f.close()
-  #text=obtainAbstractArxiv(res)
   textstemmed = raices(res)
   return textstemmed
 
 
 with open("data.json") as f:
     urls = json.load(f)
-# Imprime [True, False, None, 'Hola, mundo!'].
-print(urls)
 
 print("-----PRUEBA COMPARACION REPOSITORIOS GITHUB-----")
 print("lista de repositorios")
@@ -214,15 +205,26 @@ for url in urls:
   #obtenerJason(url,nombrecompleto)
   i+=1
 
+
 nombres = []
-contador = 0
-for w in urls:
-  if contador != num:
-    nuevo = w.replace("https://github.com/",'')
-    nombres.append(nuevo)
-    contador +=1
+for a in range (i):
+  nombre = 'test'
+  nombre2 = '.json'
+  nombrecompleto=nombre+str(a)+nombre2
+  nombres.append(obtainTittle(nombrecompleto))
+
+nombresSin = []
+nombreOrigen =''
+co=0
+for cada in nombres:
+  if co==num:
+    nombreOrigen=cada
+    co+=1
   else:
-    contador +=1
+    nombresSin.append(cada)
+    co+=1
+  
+
 
 urlreadme = []
 for a in range (i):
@@ -356,15 +358,15 @@ print(valoresDescriptionsTfidf)
 #columnas df[nombre]
 #filas df.iloc(indice)
 
-df = pd.DataFrame(index=nombres,columns = ['Readme(sentence-embedings)','Readme(tf-idf)','Abstract(sentence-embedings)','Abstract(tf-idf)','Keywords(sentence-embedings)','Keywords(tf-idf)','Description(sentence-embedings)','Description(tf-idf)'])
-df["Readme(sentence-embedings)"]=valoresReadme
-df["Readme(tf-idf)"]=valoresReadmeTfidf
-df["Abstract(sentence-embedings)"]=valoresAbstracts
-df["Abstract(tf-idf)"]=valoresAbstractsTfidf
-df["Keywords(sentence-embedings)"]=valoresTopic
-df["Keywords(tf-idf)"]=valoresTopicTfidf
-df["Description(sentence-embedings)"]=valoresDescriptions
-df["Description(tf-idf)"]=valoresDescriptionsTfidf
+df = pd.DataFrame(index=nombresSin,columns = ['Readme SentenceEmbedings','Readme TfIdf','Abstract SentenceEmbedings','Abstract TfIdf','Keywords SentenceEmbedings','Keywords TfIdf','Description SentenceEmbedings','Description TfIdf'])
+df["Readme SentenceEmbedings"]=valoresReadme
+df["Readme TfIdf"]=valoresReadmeTfidf
+df["Abstract SentenceEmbedings"]=valoresAbstracts
+df["Abstract TfIdf"]=valoresAbstractsTfidf
+df["Keywords SentenceEmbedings"]=valoresTopic
+df["Keywords TfIdf"]=valoresTopicTfidf
+df["Description SentenceEmbedings"]=valoresDescriptions
+df["Description TfIdf"]=valoresDescriptionsTfidf
 print("\n ------------- comparacion de ------------------ \n")
 print(urls[num])
 print("\n ------------------------------- \n")
@@ -373,9 +375,21 @@ print(df)
 #df.to_excel('out.xlsx') 
 
 html = df.to_html()
-
+html_template = """<html>
+<head>
+<title>Tfg Javier Prieto</title>
+</head>
+<body>
+<h2>Compararación de proyectos de software científico similares</h2>
+  
+<p>El repositorio escogido para comparar es ' """+nombreOrigen+ """ '.</p>
+  
+</body>
+</html>
+"""
 #write html to file
 text_file = open("index.html", "w")
+text_file.write(html_template)
 text_file.write(html)
 text_file.close()
 webbrowser.open_new_tab("index.html")
