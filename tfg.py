@@ -14,21 +14,6 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import PorterStemmer
 import webbrowser
 
-#["https://github.com/facebookresearch/encodec",
-#  "https://github.com/huggingface/transformers",
-#  "https://github.com/WongKinYiu/yolov7",
-#  "https://github.com/openai/sparse_attention",
-#  "https://github.com/jadore801120/attention-is-all-you-need-pytorch",
-#  "https://github.com/extreme-bert/extreme-bert",
-#  "https://github.com/fengres/mixvoxels",
-#  "https://github.com/shi-labs/versatile-diffusion",
-# "https://github.com/facebookresearch/ParlAI",
-# "https://github.com/CR-Gjx/LeakGAN",
-# "https://github.com/liangke23/awesome-knowledge-graph-reasoning",
-# "https://github.com/deepmind/code_contests",
-# "https://github.com/YuliangXiu/ECON"]
-
-["https://github.com/huggingface/transformers","https://github.com/WongKinYiu/yolov7","https://github.com/jadore801120/attention-is-all-you-need-pytorch","https://github.com/extreme-bert/extreme-bert","https://github.com/CR-Gjx/LeakGAN"]
 
 def obtenerJason (url,nombre):
   orden1="somef describe -r "
@@ -48,12 +33,15 @@ def obtenerinfo (archivo):
 #------- Algoritmo Sentences Embedings------------
 def transformarSentenceembeding(sentences,original):
   valores= []
+  if(original=="no hay"):
+    for num in sentences:
+      valores.append("-")
+    return valores
+  
   model = SentenceTransformer('all-MiniLM-L6-v2')
   i=0
   for sent in sentences:
     sim = cosine(model.encode(original), model.encode(sent))
-    #print("original "+original)
-    #print("toca: "+sent)
     print("Sentence = repositorio",i, " ,similarity = ", sim)
     i+=1
     valores.append(sim)
@@ -65,6 +53,10 @@ def cosine(u,v):
 #------- Algoritmo Tfidf------------
 def transformarTfidf(sentences,original):
   valores=[]
+  if(original=="no hay"):
+    for sent in range(len(sentences)-1):
+      valores.append("-")
+    return valores
   con = 0
   con2 = 0
   tfidf_vectorizer = TfidfVectorizer()
@@ -125,9 +117,6 @@ def obtainDoi(archivo):
   return abstract
 
 def obtainAbastract(url):
-  #https://doi.org/10.3233/SW-223135
-  #https://doi.org/10.1007/978-3-319-68204-4_9
-  #http://api.crossref.org/works/10.1007/978-3-319-68204-4_9
   new=url.replace("https://doi.org/",'')
   #print(new)
   direccion= "http://api.crossref.org/works/"
@@ -144,12 +133,10 @@ def obtainAbastract(url):
 def obtainArxiv(archivo):
   f = open(archivo)
   data = (json.loads(f.read()))
-  #url = json_load["citation"]["doi"]
   res = data["arxivLinks"]["excerpt"][0]
   f.close()
   text=obtainAbstractArxiv(res)
-  textstemmed = raices(text)
-  return textstemmed
+  return text
 
 def obtainAbstractArxiv(res):
   print("viejo "+res)
@@ -172,7 +159,6 @@ def obtainTopic(archivo):
   for palabra in res:
     junto = junto + " " + palabra
   f.close()
-  print(junto)
   return junto
 
 def obtainDescription(archivo):
@@ -201,8 +187,6 @@ for url in urls:
   nombre = 'test'
   nombre2 = '.json'
   nombrecompleto=nombre+str(i)+nombre2
-  #print(nombrecompleto)
-  #obtenerJason(url,nombrecompleto)
   i+=1
 
 
@@ -238,11 +222,8 @@ cont = 0
 readmes = []
 readmestotal = []
 for read in urlreadme:
-  #print(read)
   response = requests.get(read)
   readmestotal.append(response.text)
-  #print(response.text)
-  print(cont==num)
   if cont==num:
     origen=response.text
     cont +=1
@@ -339,7 +320,7 @@ for a in range (i):
 descriptions = []
 descriptionsTotal = []
 cont = 0
-for des in abstracts:
+for des in description:
   descriptionsTotal.append(des)
   if cont==num:
     origen=des
@@ -348,15 +329,13 @@ for des in abstracts:
     descriptions.append(des)
     cont+=1
 
+
 valoresDescriptions = transformarSentenceembeding(descriptions,origen)
 valoresDescriptionsTfidf = transformarTfidf(descriptionsTotal,origen)
 print("valores Description son ")
 print(valoresDescriptions)
 print("valores Description tfidf son ")
 print(valoresDescriptionsTfidf)
-# index=dates
-#columnas df[nombre]
-#filas df.iloc(indice)
 
 df = pd.DataFrame(index=nombresSin,columns = ['Readme SentenceEmbedings','Readme TfIdf','Abstract SentenceEmbedings','Abstract TfIdf','Keywords SentenceEmbedings','Keywords TfIdf','Description SentenceEmbedings','Description TfIdf'])
 df["Readme SentenceEmbedings"]=valoresReadme
@@ -371,8 +350,11 @@ print("\n ------------- comparacion de ------------------ \n")
 print(urls[num])
 print("\n ------------------------------- \n")
 print(df)
-1
-#df.to_excel('out.xlsx') 
+
+for a in range(i):
+  nombre = 'test'
+  nombre2 = '.json'
+  nombrecompleto=nombre+str(a)+nombre2
 
 html = df.to_html()
 html_template = """<html>
