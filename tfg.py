@@ -187,6 +187,7 @@ for url in urls:
   nombre = 'test'
   nombre2 = '.json'
   nombrecompleto=nombre+str(i)+nombre2
+  obtenerJason (url,nombrecompleto)
   i+=1
 
 
