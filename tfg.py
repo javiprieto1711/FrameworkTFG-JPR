@@ -299,10 +299,10 @@ for topic in topics:
     topiclista.append(topic)
     cont+=1
 
-valoresTopic = transformarSentenceembeding(topiclista,origen)
+#valoresTopic = transformarSentenceembeding(topiclista,origen)
 valoresTopicTfidf = transformarTfidf(topiclistatotal,origen)
-print("valores Topic son ")
-print(valoresTopic)
+#print("valores Topic son ")
+#print(valoresTopic)
 print("valores Topic tfidf son ")
 print(valoresTopicTfidf)
 
@@ -338,14 +338,13 @@ print(valoresDescriptions)
 print("valores Description tfidf son ")
 print(valoresDescriptionsTfidf)
 
-df = pd.DataFrame(index=nombresSin,columns = ['Readme SentenceEmbedings','Readme TfIdf','Abstract SentenceEmbedings','Abstract TfIdf','Keywords SentenceEmbedings','Keywords TfIdf','Description SentenceEmbedings','Description TfIdf'])
-df["Readme SentenceEmbedings"]=valoresReadme
+df = pd.DataFrame(index=nombresSin,columns = ['Readme S-Embedings','Readme TfIdf','Abstract S-Embedings','Abstract TfIdf','Keywords TfIdf','Description S-Embedings','Description TfIdf'])
+df["Readme S-Embedings"]=valoresReadme
 df["Readme TfIdf"]=valoresReadmeTfidf
-df["Abstract SentenceEmbedings"]=valoresAbstracts
+df["Abstract S-Embedings"]=valoresAbstracts
 df["Abstract TfIdf"]=valoresAbstractsTfidf
-df["Keywords SentenceEmbedings"]=valoresTopic
 df["Keywords TfIdf"]=valoresTopicTfidf
-df["Description SentenceEmbedings"]=valoresDescriptions
+df["Description S-Embedings"]=valoresDescriptions
 df["Description TfIdf"]=valoresDescriptionsTfidf
 print("\n ------------- comparacion de ------------------ \n")
 print(urls[num])
@@ -376,3 +375,5 @@ text_file.write(html_template)
 text_file.write(html)
 text_file.close()
 webbrowser.open_new_tab("index.html")
+
+
